@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  my-app:
+    build:
+      context: ./app
+    image: my-app:latest
+    ports:
+      - target: 80
+        published: 8080
+    networks:
+      - my-app
+    volumes:
+      - type: bind
+        source: ./app
+        target: /app
+    env_file:
+      - ./secrets.env
+    environment:
+      - PYTHONPATH=/app:.:..
+      - DB_NAME=app
+      - DB_HOST=cloudsql
+      - DB_PORT=3306
+    depends_on:
+      - cloudsql
+
+  cloudsql:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.0.0
+    volumes:
+      - type: bind
+        source: ~/.config/gcloud
+        target: /home/nonroot/.config/gcloud
+        read_only: true
+    ports:
+      - target: 3306
+        published: 13306
+    networks:
+      - my-app
+    command: --address 0.0.0.0 --port 3306 glass-core-xxxxxx:europe-west1:gs-mysql
+
+networks:
+  my-app:
+    name: my-app
+    driver: bridge
